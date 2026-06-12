@@ -34,8 +34,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "replace-with-eas-project-id"
+        "projectId": "cee919b6-82ea-411d-b3c7-5154be7eafab"
       }
-    }
+    },
+    "owner": "ypalmero"
   }
 }
