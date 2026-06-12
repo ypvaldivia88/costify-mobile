@@ -28,6 +28,7 @@
     "@types/react": "~19.2.2",
     "babel-plugin-module-resolver": "^5.0.3",
     "babel-preset-expo": "^56.0.15",
+    "eas-cli": "^20.1.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -36,7 +37,9 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "prebuild:android": "expo prebuild --platform android",
-    "build:apk": "expo prebuild --platform android && cd android && ./gradlew assembleRelease -x lintVitalAnalyzeRelease"
+    "build:apk": "expo prebuild --platform android && cd android && ./gradlew assembleRelease -x lintVitalAnalyzeRelease",
+    "build:preview": "eas build -p android --profile preview --non-interactive",
+    "build:production": "eas build -p android --profile production --non-interactive"
   },
   "private": true
 }
