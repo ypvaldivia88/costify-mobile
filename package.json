@@ -14,7 +14,6 @@
     "expo-crypto": "^56.0.4",
     "expo-document-picker": "^56.0.4",
     "expo-file-system": "^56.0.8",
-    "expo-router": "~56.2.10",
     "expo-sharing": "^56.0.17",
     "expo-status-bar": "~56.0.4",
     "lucide-react-native": "^1.18.0",
@@ -28,13 +27,19 @@
   "devDependencies": {
     "@types/react": "~19.2.2",
     "babel-plugin-module-resolver": "^5.0.3",
+    "babel-preset-expo": "^56.0.15",
+    "eas-cli": "^20.1.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "prebuild:android": "expo prebuild --platform android",
+    "build:apk": "expo prebuild --platform android && cd android && ./gradlew assembleRelease -x lintVitalAnalyzeRelease",
+    "build:preview": "eas build -p android --profile preview --non-interactive",
+    "build:production": "eas build -p android --profile production --non-interactive"
   },
   "private": true
 }
