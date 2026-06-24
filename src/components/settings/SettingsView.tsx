@@ -1,20 +1,28 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Database, Percent, PiggyBank, Receipt } from 'lucide-react-native';
+import { Database, DollarSign, Percent, PiggyBank, Receipt, Ruler } from 'lucide-react-native';
 import type {
   GlobalFundSettings,
   IndirectCost,
   ProductCalculation,
   RawMaterial,
+  StockMovement,
+  StockThreshold,
   TaxSettings,
+  UnitSettings,
+  Warehouse,
 } from '@/domain/types';
+import type { ExchangeRateSettings } from '@/domain/exchange-rates';
+import type { AppBackupV1 } from '@/backup/app-backup';
 import { DataSyncPanel } from '@/components/settings/DataSyncPanel';
+import { ExchangeRatesPanel } from '@/components/settings/ExchangeRatesPanel';
 import { GlobalFundSettingsPanel } from '@/components/settings/GlobalFundSettings';
 import { IndirectCostsSettings } from '@/components/settings/IndirectCostsSettings';
 import { TaxSettingsPanel } from '@/components/settings/TaxSettingsPanel';
+import { UnitSettingsPanel } from '@/components/settings/UnitSettingsPanel';
 import { useTheme } from '@/context/ThemeContext';
 
-type SettingsSection = 'sync' | 'indirect' | 'fund' | 'taxes';
+type SettingsSection = 'taxes' | 'fund' | 'indirect' | 'units' | 'exchange' | 'sync';
 
 interface SettingsViewProps {
   inventory: ProductCalculation[];
@@ -22,16 +30,26 @@ interface SettingsViewProps {
   globalCosts: IndirectCost[];
   globalFund: GlobalFundSettings;
   taxSettings: TaxSettings;
+  unitSettings: UnitSettings;
+  exchangeRateSettings: ExchangeRateSettings;
+  warehouses: Warehouse[];
+  stockMovements: StockMovement[];
+  stockThresholds: StockThreshold[];
   onSaveCosts: (costs: IndirectCost[]) => void;
   onUpdateGlobalFund: (updates: Partial<GlobalFundSettings>) => void;
   onUpdateTaxSettings: (updates: Partial<TaxSettings>) => void;
+  onSaveUnitSettings: (settings: UnitSettings) => void;
+  onResetUnitSettings: () => void;
+  onBackupImported?: (backup: AppBackupV1) => void;
 }
 
 const sections: { id: SettingsSection; label: string; icon: typeof Database }[] = [
-  { id: 'sync', label: 'Respaldo', icon: Database },
-  { id: 'indirect', label: 'Gastos', icon: Percent },
-  { id: 'fund', label: 'Fondo', icon: PiggyBank },
   { id: 'taxes', label: 'Impuestos', icon: Receipt },
+  { id: 'fund', label: 'Fondo', icon: PiggyBank },
+  { id: 'indirect', label: 'Gastos', icon: Percent },
+  { id: 'units', label: 'Unidades', icon: Ruler },
+  { id: 'exchange', label: 'Tasas', icon: DollarSign },
+  { id: 'sync', label: 'Respaldo', icon: Database },
 ];
 
 export function SettingsView({
@@ -40,12 +58,20 @@ export function SettingsView({
   globalCosts,
   globalFund,
   taxSettings,
+  unitSettings,
+  exchangeRateSettings,
+  warehouses,
+  stockMovements,
+  stockThresholds,
   onSaveCosts,
   onUpdateGlobalFund,
   onUpdateTaxSettings,
+  onSaveUnitSettings,
+  onResetUnitSettings,
+  onBackupImported,
 }: SettingsViewProps) {
   const { colors } = useTheme();
-  const [activeSection, setActiveSection] = useState<SettingsSection>('sync');
+  const [activeSection, setActiveSection] = useState<SettingsSection>('taxes');
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -79,6 +105,25 @@ export function SettingsView({
         })}
       </ScrollView>
 
+      {activeSection === 'taxes' ? (
+        <TaxSettingsPanel settings={taxSettings} onChange={onUpdateTaxSettings} />
+      ) : null}
+      {activeSection === 'fund' ? (
+        <GlobalFundSettingsPanel settings={globalFund} onChange={onUpdateGlobalFund} />
+      ) : null}
+      {activeSection === 'indirect' ? (
+        <IndirectCostsSettings costs={globalCosts} onSave={onSaveCosts} />
+      ) : null}
+      {activeSection === 'units' ? (
+        <UnitSettingsPanel
+          settings={unitSettings}
+          rawMaterials={rawMaterials}
+          inventory={inventory}
+          onSave={onSaveUnitSettings}
+          onReset={onResetUnitSettings}
+        />
+      ) : null}
+      {activeSection === 'exchange' ? <ExchangeRatesPanel /> : null}
       {activeSection === 'sync' ? (
         <DataSyncPanel
           inventory={inventory}
@@ -86,16 +131,13 @@ export function SettingsView({
           globalCosts={globalCosts}
           globalFund={globalFund}
           taxSettings={taxSettings}
+          unitSettings={unitSettings}
+          exchangeRateSettings={exchangeRateSettings}
+          warehouses={warehouses}
+          stockMovements={stockMovements}
+          stockThresholds={stockThresholds}
+          onBackupImported={onBackupImported}
         />
-      ) : null}
-      {activeSection === 'indirect' ? (
-        <IndirectCostsSettings costs={globalCosts} onSave={onSaveCosts} />
-      ) : null}
-      {activeSection === 'fund' ? (
-        <GlobalFundSettingsPanel settings={globalFund} onChange={onUpdateGlobalFund} />
-      ) : null}
-      {activeSection === 'taxes' ? (
-        <TaxSettingsPanel settings={taxSettings} onChange={onUpdateTaxSettings} />
       ) : null}
     </ScrollView>
   );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   NavigationContainer,
@@ -22,10 +22,21 @@ import { CostCalculator } from '@/components/calculator/CostCalculator';
 import { InventoryList } from '@/components/inventory/InventoryList';
 import { RawMaterialsManager } from '@/components/raw-materials/RawMaterialsManager';
 import { SettingsView } from '@/components/settings/SettingsView';
+import type { AppBackupV1 } from '@/backup/app-backup';
 import { AppDataProvider, useAppData } from '@/context/AppDataContext';
 import { DialogProvider } from '@/context/DialogContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { ExchangeRatesProvider } from '@/hooks/use-exchange-rates-context';
+import { useExchangeRates } from '@/hooks/use-exchange-rates';
+import { UnitCatalogProvider } from '@/hooks/use-unit-catalog';
+import { useUnitSettings } from '@/hooks/use-unit-settings';
+import { ExchangeRatesProvider } from '@/hooks/use-exchange-rates-context';
+import { useExchangeRates } from '@/hooks/use-exchange-rates';
+import { useStockMovements } from '@/hooks/use-stock-movements';
+import { useStockThresholds } from '@/hooks/use-stock-thresholds';
+import { useUnitSettings } from '@/hooks/use-unit-settings';
+import { useWarehouses } from '@/hooks/use-warehouses';
 
 type RootTabParamList = {
   calculator: undefined;
@@ -50,6 +61,74 @@ function LoadingScreen() {
       <ActivityIndicator size="large" color={colors.brand} />
       <Text style={{ color: colors.muted, marginTop: 12 }}>Cargando tus datos…</Text>
     </View>
+  );
+}
+
+function SettingsTab() {
+  const data = useAppData();
+  const { unitSettings, updateUnitSettings, resetUnitSettings } = useUnitSettings();
+  const { exchangeSettings, replaceSettings: replaceExchangeSettings } = useExchangeRates();
+  const { warehouses, setWarehousesDirect } = useWarehouses();
+  const { movements, setMovementsDirect } = useStockMovements();
+  const { thresholds, setThresholdsDirect } = useStockThresholds();
+
+  const handleBackupImported = (backup: AppBackupV1) => {
+    if (backup.unitSettings) {
+      updateUnitSettings(backup.unitSettings);
+    }
+    if (backup.exchangeRateSettings) {
+      replaceExchangeSettings(backup.exchangeRateSettings);
+    }
+    setWarehousesDirect(backup.warehouses ?? []);
+    setMovementsDirect(backup.stockMovements ?? []);
+    setThresholdsDirect(backup.stockThresholds ?? []);
+  };
+
+  return (
+    <SettingsView
+      inventory={data.inventory}
+      rawMaterials={data.materials}
+      globalCosts={data.globalCosts}
+      globalFund={data.globalFund}
+      taxSettings={data.taxSettings}
+      unitSettings={unitSettings}
+      exchangeRateSettings={exchangeSettings}
+      warehouses={warehouses}
+      stockMovements={movements}
+      stockThresholds={thresholds}
+      onSaveCosts={data.saveCosts}
+      onUpdateGlobalFund={data.updateGlobalFund}
+      onUpdateTaxSettings={data.updateTaxSettings}
+      onSaveUnitSettings={updateUnitSettings}
+      onResetUnitSettings={resetUnitSettings}
+      onBackupImported={handleBackupImported}
+    />
+  );
+}
+
+function ExchangeRatesBridge({ children }: { children: ReactNode }) {
+  const {
+    snapshot,
+    exchangeSettings,
+    refreshing,
+    error,
+    refreshRates,
+    updateSettings,
+    markCostingRate,
+  } = useExchangeRates();
+
+  return (
+    <ExchangeRatesProvider
+      snapshot={snapshot}
+      settings={exchangeSettings}
+      refreshing={refreshing}
+      error={error}
+      refreshRates={refreshRates}
+      updateSettings={updateSettings}
+      markCostingRate={markCostingRate}
+    >
+      {children}
+    </ExchangeRatesProvider>
   );
 }
 
@@ -83,6 +162,7 @@ function MainTabs({
   navigationRef: ReturnType<typeof useNavigationContainerRef<RootTabParamList>>;
 }) {
   const data = useAppData();
+  const { unitSettings } = useUnitSettings();
   const { colors } = useTheme();
   const [editingProduct, setEditingProduct] = useState<ProductCalculation | null>(null);
   const [activeTab, setActiveTab] = useState<keyof RootTabParamList>('calculator');
@@ -92,9 +172,19 @@ function MainTabs({
   const screenTitle = TAB_META[activeTab].title;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <AppHeader title={screenTitle} />
-      <Tab.Navigator
+    <ExchangeRatesProvider
+      snapshot={exchangeRates.snapshot}
+      settings={exchangeRates.exchangeSettings}
+      refreshing={exchangeRates.refreshing}
+      error={exchangeRates.error}
+      refreshRates={exchangeRates.refreshRates}
+      updateSettings={exchangeRates.updateSettings}
+      markCostingRate={exchangeRates.markCostingRate}
+    >
+      <UnitCatalogProvider settings={unitSettings}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          <AppHeader title={screenTitle} />
+          <Tab.Navigator
         screenListeners={{
           state: (e) => {
             const route = e.data.state?.routes[e.data.state.index];
@@ -132,6 +222,7 @@ function MainTabs({
               globalIndirectCosts={data.globalCosts}
               globalFund={data.globalFund}
               taxSettings={data.taxSettings}
+              unitSettings={unitSettings}
               editingProduct={editingProduct}
               onSave={(product) => {
                 data.saveProduct(product);
@@ -167,21 +258,12 @@ function MainTabs({
           )}
         </Tab.Screen>
         <Tab.Screen name="settings" options={{ title: TAB_META.settings.label }}>
-          {() => (
-            <SettingsView
-              inventory={data.inventory}
-              rawMaterials={data.materials}
-              globalCosts={data.globalCosts}
-              globalFund={data.globalFund}
-              taxSettings={data.taxSettings}
-              onSaveCosts={data.saveCosts}
-              onUpdateGlobalFund={data.updateGlobalFund}
-              onUpdateTaxSettings={data.updateTaxSettings}
-            />
-          )}
+          {() => <SettingsTab />}
         </Tab.Screen>
-      </Tab.Navigator>
-    </View>
+          </Tab.Navigator>
+        </View>
+      </UnitCatalogProvider>
+    </ExchangeRatesProvider>
   );
 }
 
@@ -228,7 +310,9 @@ export function AppNavigator() {
         <ToastProvider>
           <DialogProvider>
             <AppDataProvider>
-              <NavigationRoot />
+              <ExchangeRatesBridge>
+                <NavigationRoot />
+              </ExchangeRatesBridge>
             </AppDataProvider>
           </DialogProvider>
         </ToastProvider>

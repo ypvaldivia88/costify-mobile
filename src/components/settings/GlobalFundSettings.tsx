@@ -61,6 +61,9 @@ export function GlobalFundSettingsPanel({ settings, onChange }: GlobalFundSettin
             maximumTrackTintColor={colors.border}
             thumbTintColor={colors.brand}
           />
+          <Text style={{ color: colors.muted, fontSize: 12 }}>
+            Ej: 5% sobre un costo directo de 100 CUP añade 5 CUP al costo unitario.
+          </Text>
           {settings.percent > 0 ? (
             <View style={[styles.note, { backgroundColor: colors.accentSurface, borderColor: colors.accentBorder }]}>
               <Text style={{ color: colors.brandForeground, fontSize: 13 }}>

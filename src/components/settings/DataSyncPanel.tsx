@@ -9,14 +9,20 @@ import type {
   IndirectCost,
   ProductCalculation,
   RawMaterial,
+  StockMovement,
+  StockThreshold,
   TaxSettings,
+  UnitSettings,
+  Warehouse,
 } from '@/domain/types';
+import type { ExchangeRateSettings } from '@/domain/exchange-rates';
 import {
   applyBackupToStorage,
   buildBackupFileContent,
   createBackupPayload,
   parseBackupFileContent,
   parseBackupPayload,
+  type AppBackupV1,
 } from '@/backup/app-backup';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
@@ -33,6 +39,12 @@ interface DataSyncPanelProps {
   globalCosts: IndirectCost[];
   globalFund: GlobalFundSettings;
   taxSettings: TaxSettings;
+  unitSettings: UnitSettings;
+  exchangeRateSettings: ExchangeRateSettings;
+  warehouses: Warehouse[];
+  stockMovements: StockMovement[];
+  stockThresholds: StockThreshold[];
+  onBackupImported?: (backup: AppBackupV1) => void;
 }
 
 type SyncTab = 'export' | 'import';
@@ -43,6 +55,12 @@ export function DataSyncPanel({
   globalCosts,
   globalFund,
   taxSettings,
+  unitSettings,
+  exchangeRateSettings,
+  warehouses,
+  stockMovements,
+  stockThresholds,
+  onBackupImported,
 }: DataSyncPanelProps) {
   const { colors } = useTheme();
   const { confirm } = useConfirm();
@@ -60,9 +78,27 @@ export function DataSyncPanel({
         globalCosts,
         globalFund,
         taxSettings,
+        unitSettings,
+        exchangeRateSettings,
+        warehouses,
+        stockMovements,
+        stockThresholds,
       }),
-    [inventory, rawMaterials, globalCosts, globalFund, taxSettings]
+    [
+      inventory,
+      rawMaterials,
+      globalCosts,
+      globalFund,
+      taxSettings,
+      unitSettings,
+      exchangeRateSettings,
+      warehouses,
+      stockMovements,
+      stockThresholds,
+    ]
   );
+
+  const summary = `${inventory.length} producto(s), ${rawMaterials.length} materia(s) prima(s), ${warehouses.length} almacén(es)`;
 
   const copyPayload = async () => {
     await Clipboard.setStringAsync(payload);
@@ -81,18 +117,27 @@ export function DataSyncPanel({
   };
 
   const importBackup = async () => {
-    const confirmed = await confirm({
-      title: 'Importar respaldo',
-      message: 'Esto reemplazará todos los datos actuales. ¿Continuar?',
-      confirmLabel: 'Importar',
-      variant: 'danger',
-    });
-    if (!confirmed) return;
-
     try {
       const backup = parseBackupPayload(importText);
+      const confirmed = await confirm({
+        title: 'Importar respaldo',
+        message:
+          `Se importarán ${backup.inventory.length} productos y ${backup.rawMaterials.length} materias primas.\n\n` +
+          'Los datos actuales de este dispositivo serán reemplazados.',
+        confirmLabel: 'Importar',
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+
       await applyBackupToStorage(backup);
-      reloadFromBackup(backup);
+      reloadFromBackup({
+        inventory: backup.inventory,
+        rawMaterials: backup.rawMaterials,
+        globalCosts: backup.globalCosts,
+        globalFund: backup.globalFund,
+        taxSettings: backup.taxSettings,
+      });
+      onBackupImported?.(backup);
       setImportText('');
       setImportError(null);
       showToast('Respaldo importado correctamente', 'success');
@@ -123,8 +168,8 @@ export function DataSyncPanel({
     <Card>
       <SectionHeader
         icon={Database}
-        title="Respaldo de datos"
-        description="Exporta o importa tu inventario, insumos y configuración"
+        title="Respaldo manual"
+        description="Copia el código de respaldo o comparte el archivo en otro dispositivo"
       />
 
       <View style={styles.tabs}>
@@ -143,6 +188,9 @@ export function DataSyncPanel({
 
       {tab === 'export' ? (
         <View style={styles.section}>
+          <Text style={{ color: colors.muted, fontSize: 13 }}>
+            Respaldo actual: <Text style={{ color: colors.foreground, fontWeight: '700' }}>{summary}</Text>
+          </Text>
           <Text style={{ color: colors.muted, fontSize: 13 }}>
             Comparte este código o archivo para restaurar tus datos en otro dispositivo.
           </Text>
