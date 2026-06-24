@@ -1,0 +1,31 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Expo (Android)",
+      "type": "process",
+      "command": "node",
+      "args": ["scripts/debug-android.mjs", "all"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "ANDROID_HOME": "D:\\Devops\\Android\\Sdk",
+          "ANDROID_AVD": "Pixel_7_API_35",
+          "EXPO_ROUTER_DISABLE_RN_NAVIGATION_CHECK": "1"
+        }
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "expo",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "Android Bundled"
+        }
+      }
+    }
+  ]
+}

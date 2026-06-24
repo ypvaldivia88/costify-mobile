@@ -1,0 +1,6 @@
+{
+  "terminal.integrated.env.windows": {
+    "ANDROID_HOME": "D:\\Devops\\Android\\Sdk",
+    "ANDROID_AVD": "Pixel_7_API_35"
+  }
+}

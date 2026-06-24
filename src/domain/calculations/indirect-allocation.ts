@@ -4,7 +4,7 @@ import type {
   ProductAllocationContext,
   ProductCalculation,
 } from '../types';
-import { migrateProductInput } from './product';
+import { migrateProductInput } from './product-migration';
 
 export interface IndirectAllocationResult {
   totalPerUnit: number;

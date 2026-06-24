@@ -1,3 +1,4 @@
+import { createId } from '@/utils/uuid';
 import type {
   MovementLine,
   ProductCalculation,
@@ -133,7 +134,7 @@ export function buildStockMovement(
 ): StockMovement {
   return {
     ...input,
-    id: id ?? crypto.randomUUID(),
+    id: id ?? createId(),
     timestamp: timestamp ?? Date.now(),
   };
 }
@@ -145,7 +146,7 @@ export function buildWarehouse(
 ): Warehouse {
   return {
     ...input,
-    id: id ?? crypto.randomUUID(),
+    id: id ?? createId(),
     timestamp: timestamp ?? Date.now(),
   };
 }
