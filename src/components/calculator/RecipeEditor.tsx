@@ -2,7 +2,6 @@ import { Plus, Trash2 } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import type { RawMaterial, RecipeItem, UnitType } from '@/domain/types';
-import { UNIT_LABELS, UNIT_SHORT_LABELS } from '@/domain/constants';
 import {
   getRecipeUnitOptions,
   materialUnitCostInRecipeUnit,
@@ -13,7 +12,7 @@ import { formatCurrency } from '@/format/currency';
 import { Button } from '@/components/ui/Button';
 import { NumericField } from '@/components/ui/NumericField';
 import { useTheme } from '@/context/ThemeContext';
-import { createId } from '@/utils/uuid';
+import { useUnitCatalog } from '@/hooks/use-unit-catalog';
 
 interface RecipeEditorProps {
   recipe: RecipeItem[];
@@ -21,14 +20,20 @@ interface RecipeEditorProps {
   onChange: (recipe: RecipeItem[]) => void;
 }
 
-function lineCost(item: RecipeItem, material: RawMaterial): number {
-  const recipeUnit = resolveRecipeUnit(item, material.unitType);
-  const qty = recipeQuantityInMaterialUnit(item.quantity, recipeUnit, material.unitType);
+function lineCost(
+  item: RecipeItem,
+  material: RawMaterial,
+  unitSettings: ReturnType<typeof useUnitCatalog>['settings']
+): number {
+  const recipeUnit = resolveRecipeUnit(item, material.unitType, unitSettings);
+  const qty = recipeQuantityInMaterialUnit(item.quantity, recipeUnit, material.unitType, unitSettings);
   return material.unitCost * qty;
 }
 
 export function RecipeEditor({ recipe, rawMaterials, onChange }: RecipeEditorProps) {
   const { colors } = useTheme();
+  const unitCatalog = useUnitCatalog();
+  const unitSettings = unitCatalog.settings;
   const usedIds = new Set(recipe.map((r) => r.rawMaterialId));
   const availableMaterials = rawMaterials.filter((m) => !usedIds.has(m.id));
 
@@ -47,8 +52,8 @@ export function RecipeEditor({ recipe, rawMaterials, onChange }: RecipeEditorPro
     const item = recipe[index];
     const updates: Partial<RecipeItem> = { rawMaterialId };
     if (material) {
-      const currentUnit = resolveRecipeUnit(item, material.unitType);
-      const options = getRecipeUnitOptions(material.unitType);
+      const currentUnit = resolveRecipeUnit(item, material.unitType, unitSettings);
+      const options = getRecipeUnitOptions(material.unitType, unitSettings);
       if (!options.includes(currentUnit)) updates.unitType = material.unitType;
     }
     updateItem(index, updates);
@@ -57,7 +62,7 @@ export function RecipeEditor({ recipe, rawMaterials, onChange }: RecipeEditorPro
   const totalCost = recipe.reduce((sum, item) => {
     const material = rawMaterials.find((m) => m.id === item.rawMaterialId);
     if (!material || item.quantity <= 0) return sum;
-    return sum + lineCost(item, material);
+    return sum + lineCost(item, material, unitSettings);
   }, 0);
 
   if (rawMaterials.length === 0) {
@@ -85,13 +90,14 @@ export function RecipeEditor({ recipe, rawMaterials, onChange }: RecipeEditorPro
         recipe.map((item, index) => {
           const material = rawMaterials.find((m) => m.id === item.rawMaterialId);
           if (!material) return null;
-          const recipeUnit = resolveRecipeUnit(item, material.unitType);
-          const unitOptions = getRecipeUnitOptions(material.unitType);
-          const cost = lineCost(item, material);
+          const recipeUnit = resolveRecipeUnit(item, material.unitType, unitSettings);
+          const unitOptions = getRecipeUnitOptions(material.unitType, unitSettings);
+          const cost = lineCost(item, material, unitSettings);
           const displayUnitCost = materialUnitCostInRecipeUnit(
             material.unitCost,
             material.unitType,
-            recipeUnit
+            recipeUnit,
+            unitSettings
           );
 
           return (
@@ -108,7 +114,7 @@ export function RecipeEditor({ recipe, rawMaterials, onChange }: RecipeEditorPro
                   {rawMaterials.map((m) => (
                     <Picker.Item
                       key={m.id}
-                      label={`${m.name} (${formatCurrency(m.unitCost)}/${UNIT_SHORT_LABELS[m.unitType]})`}
+                      label={`${m.name} (${formatCurrency(m.unitCost)}/${unitCatalog.getShortLabel(m.unitType)})`}
                       value={m.id}
                     />
                   ))}
@@ -127,7 +133,7 @@ export function RecipeEditor({ recipe, rawMaterials, onChange }: RecipeEditorPro
                     style={{ color: colors.foreground }}
                   >
                     {unitOptions.map((unit) => (
-                      <Picker.Item key={unit} label={UNIT_LABELS[unit]} value={unit} />
+                      <Picker.Item key={unit} label={unitCatalog.getLabel(unit)} value={unit} />
                     ))}
                   </Picker>
                 </View>
@@ -141,7 +147,7 @@ export function RecipeEditor({ recipe, rawMaterials, onChange }: RecipeEditorPro
               </View>
               <View style={styles.costRow}>
                 <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  {formatCurrency(displayUnitCost)}/{UNIT_SHORT_LABELS[recipeUnit]}
+                  {formatCurrency(displayUnitCost)}/{unitCatalog.getShortLabel(recipeUnit)}
                 </Text>
                 <Text style={{ color: colors.foreground, fontWeight: '700' }}>{formatCurrency(cost)}</Text>
               </View>

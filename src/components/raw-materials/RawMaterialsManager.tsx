@@ -20,6 +20,7 @@ interface RawMaterialsManagerProps {
       unitType: RawMaterial['unitType'];
       packageQuantity: number;
       stockQuantity: number;
+      purchaseMeta?: RawMaterial['purchaseMeta'];
     },
     id?: string,
     timestamp?: number
@@ -81,13 +82,14 @@ export function RawMaterialsManager({
             <StatCard label="Materias primas" value={String(materials.length)} />
           </Card>
           <Card style={styles.statCard}>
-            <StatCard label="Valor en stock" value={formatCurrency(totalStockValue)} />
+            <StatCard label="Valor en almacén" value={formatCurrency(totalStockValue)} />
           </Card>
         </View>
       ) : null}
 
       {materials.length === 0 ? (
         <Card variant="muted" style={styles.empty}>
+          <Boxes size={40} color={`${colors.muted}66`} style={{ marginBottom: 12 }} />
           <Text style={{ color: colors.foreground, fontWeight: '700' }}>Sin materias primas</Text>
           <Text style={{ color: colors.muted, fontSize: 13, textAlign: 'center', marginTop: 6 }}>
             Agrega la primera para confeccionar productos elaborados.

@@ -30,6 +30,10 @@ function allocateSingleCost(
   const criteria = cost.distributionCriteria ?? 'manual';
   const productionUnits = currentProduct.productionUnits || 0;
 
+  if (productionUnits <= 0) {
+    return { assigned: 0, perUnit: 0 };
+  }
+
   switch (criteria) {
     case 'units': {
       const totalUnits = allProducts.reduce((sum, p) => sum + (p.productionUnits || 0), 0);

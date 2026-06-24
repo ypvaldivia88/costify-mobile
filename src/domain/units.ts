@@ -1,58 +1,81 @@
-import type { UnitType } from './types';
+import type { UnitSettings, UnitType } from './types';
+import {
+  DEFAULT_UNIT_SETTINGS,
+  getUnitDefinition,
+  getUnitFactor,
+  getUnitsByFamily,
+} from './unit-settings';
 
-const WEIGHT_UNITS: UnitType[] = ['gr', 'kg'];
-const VOLUME_UNITS: UnitType[] = ['ml', 'lt'];
-
-export function getUnitFamily(unit: UnitType): 'weight' | 'volume' | 'count' {
-  if (WEIGHT_UNITS.includes(unit)) return 'weight';
-  if (VOLUME_UNITS.includes(unit)) return 'volume';
-  return 'count';
+export function getUnitFamily(
+  unit: UnitType,
+  settings: UnitSettings = DEFAULT_UNIT_SETTINGS
+): 'weight' | 'volume' | 'count' {
+  const definition = getUnitDefinition(settings, unit);
+  if (!definition) return 'count';
+  return definition.family;
 }
 
-export function areUnitsCompatible(a: UnitType, b: UnitType): boolean {
-  return getUnitFamily(a) === getUnitFamily(b);
+export function areUnitsCompatible(
+  a: UnitType,
+  b: UnitType,
+  settings: UnitSettings = DEFAULT_UNIT_SETTINGS
+): boolean {
+  return getUnitFamily(a, settings) === getUnitFamily(b, settings);
 }
 
 /** Unidades disponibles al confeccionar una receta a partir de la unidad de compra */
-export function getRecipeUnitOptions(materialUnit: UnitType): UnitType[] {
-  const family = getUnitFamily(materialUnit);
-  if (family === 'weight') return WEIGHT_UNITS;
-  if (family === 'volume') return VOLUME_UNITS;
-  return ['ud'];
+export function getRecipeUnitOptions(
+  materialUnit: UnitType,
+  settings: UnitSettings = DEFAULT_UNIT_SETTINGS
+): UnitType[] {
+  const family = getUnitFamily(materialUnit, settings);
+  if (family === 'weight') return getUnitsByFamily(settings, 'weight').map((unit) => unit.id);
+  if (family === 'volume') return getUnitsByFamily(settings, 'volume').map((unit) => unit.id);
+  return getUnitsByFamily(settings, 'count').map((unit) => unit.id);
 }
 
-export function convertQuantity(value: number, from: UnitType, to: UnitType): number {
+export function convertQuantity(
+  value: number,
+  from: UnitType,
+  to: UnitType,
+  settings: UnitSettings = DEFAULT_UNIT_SETTINGS
+): number {
   if (from === to) return value;
-  if (!areUnitsCompatible(from, to)) return value;
+  if (!areUnitsCompatible(from, to, settings)) return value;
 
-  if (from === 'kg' && to === 'gr') return value * 1000;
-  if (from === 'gr' && to === 'kg') return value / 1000;
-  if (from === 'lt' && to === 'ml') return value * 1000;
-  if (from === 'ml' && to === 'lt') return value / 1000;
+  const fromFactor = getUnitFactor(settings, from);
+  const toFactor = getUnitFactor(settings, to);
+  if (fromFactor === undefined || toFactor === undefined) return value;
 
-  return value;
+  return (value * fromFactor) / toFactor;
 }
 
-export function resolveRecipeUnit(item: { unitType?: UnitType }, materialUnit: UnitType): UnitType {
+export function resolveRecipeUnit(
+  item: { unitType?: UnitType },
+  materialUnit: UnitType,
+  settings: UnitSettings = DEFAULT_UNIT_SETTINGS
+): UnitType {
   const unit = item.unitType ?? materialUnit;
-  return areUnitsCompatible(unit, materialUnit) ? unit : materialUnit;
+  return areUnitsCompatible(unit, materialUnit, settings) ? unit : materialUnit;
 }
 
 /** Cantidad de la receta expresada en la unidad de la materia prima (para costo y stock) */
 export function recipeQuantityInMaterialUnit(
   quantity: number,
   recipeUnit: UnitType,
-  materialUnit: UnitType
+  materialUnit: UnitType,
+  settings: UnitSettings = DEFAULT_UNIT_SETTINGS
 ): number {
-  return convertQuantity(quantity, recipeUnit, materialUnit);
+  return convertQuantity(quantity, recipeUnit, materialUnit, settings);
 }
 
 /** Costo unitario de la materia prima expresado en la unidad de la receta */
 export function materialUnitCostInRecipeUnit(
   unitCost: number,
   materialUnit: UnitType,
-  recipeUnit: UnitType
+  recipeUnit: UnitType,
+  settings: UnitSettings = DEFAULT_UNIT_SETTINGS
 ): number {
-  const factor = recipeQuantityInMaterialUnit(1, recipeUnit, materialUnit);
+  const factor = recipeQuantityInMaterialUnit(1, recipeUnit, materialUnit, settings);
   return unitCost * factor;
 }

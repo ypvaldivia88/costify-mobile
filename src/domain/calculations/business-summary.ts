@@ -24,7 +24,8 @@ export function calculateBusinessSummary(
         totalGrossProfit: acc.totalGrossProfit + grossProfit,
         totalTaxes: acc.totalTaxes + taxes.totalTaxes,
         totalNetProfit: acc.totalNetProfit + taxes.netProfit,
-        totalStockValue: acc.totalStockValue + product.suggestedPrice * product.productionUnits,
+        totalProjectedRevenue:
+          acc.totalProjectedRevenue + product.suggestedPrice * product.productionUnits,
         grossMarginSum: acc.grossMarginSum + product.grossMarginPercent,
       };
     },
@@ -35,7 +36,7 @@ export function calculateBusinessSummary(
       totalGrossProfit: 0,
       totalTaxes: 0,
       totalNetProfit: 0,
-      totalStockValue: 0,
+      totalProjectedRevenue: 0,
       grossMarginSum: 0,
     }
   );
@@ -48,7 +49,8 @@ export function calculateBusinessSummary(
     taxLineTotals: Array.from(taxTotalsMap.values()),
     totalTaxes: base.totalTaxes,
     totalNetProfit: base.totalNetProfit,
-    totalStockValue: base.totalStockValue,
+    totalProjectedRevenue: base.totalProjectedRevenue,
+    totalStockValue: base.totalProjectedRevenue,
     productCount: products.length,
     averageGrossMargin:
       products.length > 0 ? base.grossMarginSum / products.length : 0,

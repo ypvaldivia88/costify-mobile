@@ -1,40 +1,14 @@
-import type { DistributionCriteria, GlobalFundSettings, UnitType, TaxSettings } from './types';
+import type {
+  DistributionCriteria,
+  GlobalFundSettings,
+  MovementType,
+  TaxSettings,
+  WarehouseType,
+} from './types';
+import { DEFAULT_EXCHANGE_RATE_SETTINGS } from './exchange-rates';
 import { getPresetLines } from './tax-presets';
 
-export const UNIT_TYPES: UnitType[] = ['ud', 'gr', 'kg', 'lt', 'ml'];
-
-export const UNIT_LABELS: Record<UnitType, string> = {
-  ud: 'Unidad básica',
-  gr: 'gr',
-  kg: 'kg',
-  lt: 'lt',
-  ml: 'ml',
-};
-
-/** Etiqueta corta para listas y costos unitarios */
-export const UNIT_SHORT_LABELS: Record<UnitType, string> = {
-  ud: 'ud',
-  gr: 'gr',
-  kg: 'kg',
-  lt: 'lt',
-  ml: 'ml',
-};
-
-/** Sugerencias para la unidad de compra de productos simples */
-export const PRODUCT_PURCHASE_UNIT_SUGGESTIONS = [
-  'unidad',
-  'caja',
-  'bolsa',
-  'saco',
-  'paquete',
-  'docena',
-  'par',
-  'kg',
-  'gr',
-  'lt',
-  'ml',
-  'rollo',
-] as const;
+export { DEFAULT_EXCHANGE_RATE_SETTINGS };
 
 export const DEFAULT_TAX_SETTINGS: TaxSettings = {
   enabled: true,
@@ -73,8 +47,31 @@ export const STORAGE_KEYS = {
   taxSettings: 'costify_tax_settings_v3',
   rawMaterials: 'costify_raw_materials_v2',
   globalFund: 'costify_global_fund_v2',
+  unitSettings: 'costify_unit_settings_v1',
+  warehouses: 'costify_warehouses_v1',
+  stockMovements: 'costify_stock_movements_v1',
+  stockThresholds: 'costify_stock_thresholds_v1',
   theme: 'costify_theme_v1',
+  syncWorkspaceId: 'costify_workspace_id_v1',
+  syncMetadata: 'costify_sync_metadata_v1',
+  exchangeRates: 'costify_exchange_rates_v1',
 } as const;
+
+export const WAREHOUSE_TYPE_LABELS: Record<WarehouseType, string> = {
+  principal: 'Bodega principal',
+  venta: 'Punto de venta',
+  produccion: 'Producción',
+};
+
+export const MOVEMENT_TYPE_LABELS: Record<MovementType, string> = {
+  inventario_inicial: 'Inventario inicial',
+  entrada: 'Entrada',
+  salida: 'Salida',
+  transferencia: 'Transferencia',
+  merma: 'Merma',
+  ajuste: 'Ajuste',
+  produccion: 'Producción',
+};
 
 export const PRODUCT_TYPE_LABELS = {
   simple: 'Producto simple',

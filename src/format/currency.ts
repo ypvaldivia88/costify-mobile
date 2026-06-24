@@ -21,3 +21,12 @@ export function formatCurrencyCompact(value: number): string {
 export function formatPercent(value: number, decimals = 1): string {
   return `${value.toFixed(decimals)}%`;
 }
+
+const foreignFormatter = new Intl.NumberFormat('es-CU', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+export function formatForeignCurrency(amount: number, currency: string): string {
+  return `${foreignFormatter.format(amount)} ${currency}`;
+}

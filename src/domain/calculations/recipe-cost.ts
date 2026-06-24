@@ -1,23 +1,30 @@
-import type { RawMaterial, RecipeItem, RecipeItemBreakdown, UnitType } from '../types';
+import type { RawMaterial, RecipeItem, RecipeItemBreakdown, UnitSettings } from '../types';
+import { DEFAULT_UNIT_SETTINGS } from '../unit-settings';
 import {
   materialUnitCostInRecipeUnit,
   recipeQuantityInMaterialUnit,
   resolveRecipeUnit,
 } from '../units';
 
-function lineCostForRecipeItem(item: RecipeItem, material: RawMaterial): number {
-  const recipeUnit = resolveRecipeUnit(item, material.unitType);
+function lineCostForRecipeItem(
+  item: RecipeItem,
+  material: RawMaterial,
+  unitSettings: UnitSettings
+): number {
+  const recipeUnit = resolveRecipeUnit(item, material.unitType, unitSettings);
   const quantityInMaterialUnit = recipeQuantityInMaterialUnit(
     item.quantity,
     recipeUnit,
-    material.unitType
+    material.unitType,
+    unitSettings
   );
   return material.unitCost * quantityInMaterialUnit;
 }
 
 export function calculateRecipeUnitCost(
   recipe: RecipeItem[],
-  rawMaterials: RawMaterial[]
+  rawMaterials: RawMaterial[],
+  unitSettings: UnitSettings = DEFAULT_UNIT_SETTINGS
 ): { unitCost: number; breakdown: RecipeItemBreakdown[] } {
   const breakdown: RecipeItemBreakdown[] = [];
   let unitCost = 0;
@@ -28,15 +35,20 @@ export function calculateRecipeUnitCost(
     const material = rawMaterials.find((m) => m.id === item.rawMaterialId);
     if (!material) continue;
 
-    const recipeUnit = resolveRecipeUnit(item, material.unitType);
-    const lineCost = lineCostForRecipeItem(item, material);
+    const recipeUnit = resolveRecipeUnit(item, material.unitType, unitSettings);
+    const lineCost = lineCostForRecipeItem(item, material, unitSettings);
     unitCost += lineCost;
     breakdown.push({
       rawMaterialId: material.id,
       name: material.name,
       quantity: item.quantity,
       unitType: recipeUnit,
-      unitCost: materialUnitCostInRecipeUnit(material.unitCost, material.unitType, recipeUnit),
+      unitCost: materialUnitCostInRecipeUnit(
+        material.unitCost,
+        material.unitType,
+        recipeUnit,
+        unitSettings
+      ),
       lineCost,
     });
   }
@@ -47,7 +59,8 @@ export function calculateRecipeUnitCost(
 export function estimateRecipeConsumption(
   recipe: RecipeItem[],
   rawMaterials: RawMaterial[],
-  productionUnits: number
+  productionUnits: number,
+  unitSettings: UnitSettings = DEFAULT_UNIT_SETTINGS
 ): Array<{ rawMaterialId: string; quantity: number }> {
   return recipe
     .filter((item) => item.quantity > 0)
@@ -57,8 +70,9 @@ export function estimateRecipeConsumption(
         material != null
           ? recipeQuantityInMaterialUnit(
               item.quantity,
-              resolveRecipeUnit(item, material.unitType),
-              material.unitType
+              resolveRecipeUnit(item, material.unitType, unitSettings),
+              material.unitType,
+              unitSettings
             )
           : item.quantity;
       return {

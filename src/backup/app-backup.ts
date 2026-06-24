@@ -4,10 +4,17 @@ import type {
   IndirectCost,
   ProductCalculation,
   RawMaterial,
+  StockMovement,
+  StockThreshold,
   TaxSettings,
+  UnitSettings,
+  Warehouse,
 } from '@/domain/types';
+import type { ExchangeRateSettings } from '@/domain/exchange-rates';
+import { migrateExchangeRateSettings } from '@/domain/migrate-exchange-rates';
 import { migrateGlobalFundSettings } from '@/domain/calculations/global-fund';
 import { migrateTaxSettings } from '@/domain/migrate-tax-settings';
+import { migrateUnitSettings } from '@/domain/unit-settings';
 import {
   DEFAULT_GLOBAL_FUND_SETTINGS,
   DEFAULT_TAX_SETTINGS,
@@ -25,6 +32,11 @@ export interface AppBackupV1 {
   globalCosts: IndirectCost[];
   globalFund: GlobalFundSettings;
   taxSettings: TaxSettings;
+  unitSettings?: UnitSettings;
+  warehouses?: Warehouse[];
+  stockMovements?: StockMovement[];
+  stockThresholds?: StockThreshold[];
+  exchangeRateSettings?: ExchangeRateSettings;
 }
 
 export interface AppBackupInput {
@@ -33,6 +45,11 @@ export interface AppBackupInput {
   globalCosts: IndirectCost[];
   globalFund: GlobalFundSettings;
   taxSettings: TaxSettings;
+  unitSettings: UnitSettings;
+  warehouses: Warehouse[];
+  stockMovements: StockMovement[];
+  stockThresholds: StockThreshold[];
+  exchangeRateSettings: ExchangeRateSettings;
 }
 
 function toBase64Url(text: string): string {
@@ -56,6 +73,11 @@ export function createBackupPayload(input: AppBackupInput): string {
     globalCosts: input.globalCosts,
     globalFund: input.globalFund,
     taxSettings: input.taxSettings,
+    unitSettings: input.unitSettings,
+    warehouses: input.warehouses,
+    stockMovements: input.stockMovements,
+    stockThresholds: input.stockThresholds,
+    exchangeRateSettings: input.exchangeRateSettings,
   };
   return BACKUP_PREFIX + toBase64Url(JSON.stringify(backup));
 }
@@ -90,6 +112,11 @@ export function parseBackupPayload(raw: string): AppBackupV1 {
     globalCosts: Array.isArray(backup.globalCosts) ? backup.globalCosts : [],
     globalFund: migrateGlobalFundSettings(backup.globalFund ?? DEFAULT_GLOBAL_FUND_SETTINGS),
     taxSettings: migrateTaxSettings(backup.taxSettings ?? DEFAULT_TAX_SETTINGS),
+    unitSettings: migrateUnitSettings(backup.unitSettings),
+    warehouses: Array.isArray(backup.warehouses) ? backup.warehouses : [],
+    stockMovements: Array.isArray(backup.stockMovements) ? backup.stockMovements : [],
+    stockThresholds: Array.isArray(backup.stockThresholds) ? backup.stockThresholds : [],
+    exchangeRateSettings: migrateExchangeRateSettings(backup.exchangeRateSettings),
   };
 }
 
@@ -99,6 +126,14 @@ export async function applyBackupToStorage(backup: AppBackupV1): Promise<void> {
   await saveToStorage(STORAGE_KEYS.globalCosts, backup.globalCosts);
   await saveToStorage(STORAGE_KEYS.globalFund, backup.globalFund);
   await saveToStorage(STORAGE_KEYS.taxSettings, migrateTaxSettings(backup.taxSettings));
+  await saveToStorage(STORAGE_KEYS.unitSettings, migrateUnitSettings(backup.unitSettings));
+  await saveToStorage(STORAGE_KEYS.warehouses, backup.warehouses ?? []);
+  await saveToStorage(STORAGE_KEYS.stockMovements, backup.stockMovements ?? []);
+  await saveToStorage(STORAGE_KEYS.stockThresholds, backup.stockThresholds ?? []);
+  await saveToStorage(
+    STORAGE_KEYS.exchangeRates,
+    migrateExchangeRateSettings(backup.exchangeRateSettings)
+  );
 }
 
 export function parseBackupFileContent(text: string): string {
@@ -119,6 +154,11 @@ export function parseBackupFileContent(text: string): string {
       globalCosts: backup.globalCosts ?? [],
       globalFund: migrateGlobalFundSettings(backup.globalFund ?? DEFAULT_GLOBAL_FUND_SETTINGS),
       taxSettings: migrateTaxSettings(backup.taxSettings ?? DEFAULT_TAX_SETTINGS),
+      unitSettings: migrateUnitSettings(backup.unitSettings),
+      warehouses: backup.warehouses ?? [],
+      stockMovements: backup.stockMovements ?? [],
+      stockThresholds: backup.stockThresholds ?? [],
+      exchangeRateSettings: migrateExchangeRateSettings(backup.exchangeRateSettings),
     });
   }
   throw new Error('Archivo de respaldo no reconocido.');
